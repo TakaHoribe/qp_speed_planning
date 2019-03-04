@@ -17,19 +17,19 @@ print(vel_orig[0])
 
 
 v_max = 10.0 # velocity limit [m/s]
-a_max = 1.0  # acceleration limit [m/s2]
-s_max = 8.0  # jerk limit [m/s3]
-latacc_max = 1.5 # lateral acceleration limit [m/s2]
+a_max = 1.5  # acceleration limit [m/s2]
+s_max = 15.0  # jerk limit [m/s3]
+latacc_max = 2.0 # lateral acceleration limit [m/s2]
 
 l = len(vel_orig)
 
 print(' -- original acc -- ')
-acc = vel_orig[1:l] * np.array(vel_orig[1:l] - vel_orig[0:l-1])
-print(acc)
+acc_orig = vel_orig[1:l] * np.array(vel_orig[1:l] - vel_orig[0:l-1])
+print(acc_orig)
 
 print(' -- original jerk --')
-jerk = (vel_orig[1:l-1] * vel_orig[1:l-1]) * np.array(vel_orig[2:l] - vel_orig[0:l-2])
-print(jerk)
+jerk_orig = (vel_orig[1:l-1] * vel_orig[1:l-1]) * np.array(vel_orig[2:l] - vel_orig[0:l-2])
+print(jerk_orig)
 
 vel = vel_orig
 
@@ -58,6 +58,8 @@ curvature[l-1] = curvature[l-2]
 # print('curvature : ')
 # print(curvature)
 
+latacc_orig = np.abs(curvature) * vel_orig.reshape((l,1)) * vel_orig.reshape((l,1))
+
 # 横Gを考慮した最大速度計算
 v_latg_max = np.zeros((l,1))
 for i in range(l):
@@ -76,7 +78,7 @@ A[0,0] = 1
 A[1,l-1] = 1
 b = np.array([vel[0], vel[l-1]])
 
-for j in range(10):
+for j in range(20):
 
     # # 速度制約
     G_vel = np.eye(l)
@@ -114,10 +116,9 @@ for j in range(10):
     q = np.array(-vel_orig)
 
     cvxopt.solvers.options['show_progress'] = False
-    sol = cvxopt.solvers.qp(cvxopt.matrix(P), cvxopt.matrix(q), G=cvxopt.matrix(G), h=cvxopt.matrix(h), A=cvxopt.matrix(A), b=cvxopt.matrix(b))
-    # sol = cvxopt.solvers.qp(cvxopt.matrix(P), cvxopt.matrix(q), G=cvxopt.matrix(G), h=cvxopt.matrix(h))
+    # sol = cvxopt.solvers.qp(cvxopt.matrix(P), cvxopt.matrix(q), G=cvxopt.matrix(G), h=cvxopt.matrix(h), A=cvxopt.matrix(A), b=cvxopt.matrix(b))
+    sol = cvxopt.solvers.qp(cvxopt.matrix(P), cvxopt.matrix(q), G=cvxopt.matrix(G), h=cvxopt.matrix(h))
     # sol = cvxopt.solvers.qp(cvxopt.matrix(P), cvxopt.matrix(q))
-    velp = vel
     vel = np.array(sol['x'])
     cost = sol["primal objective"] + np.dot(vel_orig, vel_orig)
     # print('cost = ', cost)
@@ -128,8 +129,9 @@ for j in range(10):
 
 
 print('vel res = ', vel)
+vel_res = vel
 
-vv = vel.reshape((l,1))
+vv = vel_res.reshape((l,1))
 acc_res = vv[0:l-1] * (vel[1:l] - vel[0:l-1])
 jerk_res = vv[1:l-1] * vv[1:l-1] * (vel[2:l] - vel[0:l-2])
 latacc_res = curvature * vel * vel
@@ -148,8 +150,31 @@ print('latacc lim = ', latacc_max)
 print('latacc max = ', np.max(latacc_res))
 print('latacc min = ', np.min(latacc_res))
 
+plt.subplot(2, 2, 1)
 plt.plot(vel_orig, '-o', label="original")
 plt.plot(vel, '-o', label="optimized")
-plt.plot(latacc_res, '-o', label="lat acc")
+plt.title('velocity')
 plt.legend()
+
+plt.subplot(2, 2, 2)
+plt.plot(acc_orig, '-o', label="original")
+plt.plot(acc_res, '-o', label="optimized")
+plt.plot(np.ones(l) * a_max, '--', label="limit")
+plt.title('acceleration')
+plt.legend()
+
+plt.subplot(2, 2, 3)
+plt.plot(jerk_orig, '-o', label="original")
+plt.plot(jerk_res, '-o', label="optimized")
+plt.plot(np.ones(l) * s_max, '--', label="limit")
+plt.title('jerk')
+plt.legend()
+
+plt.subplot(2, 2, 4)
+plt.plot(latacc_orig, '-o', label="original")
+plt.plot(latacc_res, '-o', label="optimized")
+plt.plot(np.ones(l) * latacc_max, '--', label="limit")
+plt.title('lateral acceleration')
+plt.legend()
+
 plt.show()
