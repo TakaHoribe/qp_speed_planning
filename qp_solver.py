@@ -10,7 +10,6 @@ import pandas as pd
 def area2(a, b, c):
     return (b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0])
 
-
 def dist(a, b):
     dx = a[0] - b[0]
     dy = a[1] - b[1]
@@ -47,16 +46,9 @@ def planSpeedConvexOpt(vel, waypoints_dist, a_max, s_max, v_max_arr, v_min_arr, 
     A[1,l-1] = 1
     b = np.array([vel[0], vel[l-1]])
 
-
     for j in range(max_iter_num):
 
         # velocity constraint
-        # G_vel = np.eye(l)
-        # G_vel = np.vstack((G_vel, -G_vel))
-        # h_vel = v_max_arr # velocity limit for lateral acceleration 
-        # h_vel = np.vstack((h_vel, h_vel))
-        # G = G_vel
-        # h = h_vel
         G_vel = np.eye(l)
         G_vel = np.vstack((G_vel, -G_vel))
         h_vel_max = v_max_arr # velocity limit for lateral acceleration 
@@ -120,8 +112,6 @@ def plotResult(vel):
     v = v[0,:]
     k = curvature.reshape((1,l))
     k = k[0,:]
-
-
 
     acc_res = v[0:l-1] * (v[1:l] - v[0:l-1])
     jerk_res = (v[1:l-1] * v[1:l-1]) * (v[2:l] - 2.0 * v[1:l-1] + v[0:l-2]) / (waypoints_dist ** 2)
@@ -227,6 +217,7 @@ if __name__ == '__main__':
         tire_angvel_tmp[i] = tire_angvel_orig[i-1]
     tire_angvel_tmp[0] = tire_angvel_orig[0]
     tire_angvel_tmp[-1] = tire_angvel_orig[-1]
+
     v_min_arr = np.zeros((l,1))
     for i in range(l):
         if abs(tire_angvel_tmp[i]) > tire_angvel_thr:
