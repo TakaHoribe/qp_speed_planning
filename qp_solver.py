@@ -16,24 +16,32 @@ def dist(a, b):
     dy = a[1] - b[1]
     return (dx**2 + dy**2)**0.5
 
-def calc3PointsCurvature(a, b, c):
+def calc_3points_curvature(a, b, c):
     return 2.0 * area2(a, b, c) / (dist(a,b) * dist(b,c) * dist(c,a))
 
 # curvature calculation
-def calcWaypointsCurvature(wp_x, wp_y):
+def calc_waypoints_curvature(wp_x, wp_y):
     l = len(wp_x)
     curvature = np.zeros((l,1))
     for i in range(1,l-1):
         p0 = np.array([wp_x[i-1], wp_y[i-1]])
         p1 = np.array([wp_x[i], wp_y[i]])
         p2 = np.array([wp_x[i+1], wp_y[i+1]])
-        curvature[i] = calc3PointsCurvature(p0, p1, p2)
+        curvature[i] = calc_3points_curvature(p0, p1, p2)
     curvature[0] = curvature[1]
     curvature[l-1] = curvature[l-2]
     return curvature
 
+def convert_eluer_to_monotonic(yaw_arr):
+    for i in range(1, len(yaw_arr)):
+        if yaw_arr[i] - yaw_arr[i-1] > math.pi:
+            yaw_arr[i:l] = yaw_arr[i:l] - 2.0 * math.pi
+        elif yaw_arr[i] - yaw_arr[i-1] < -math.pi:
+            yaw_arr[i:l] = yaw_arr[i:l] + 2.0 * math.pi
+    return yaw_arr
+
 # optimization
-def planSpeedConvexOpt(vel, waypoints_dist, a_max, s_max, v_max_arr, v_min_arr, tire_angvel_max, max_iter_num):
+def plan_speed_convex_opt(vel, waypoints_dist, a_max, s_max, v_max_arr, v_min_arr, tire_angvel_max, max_iter_num):
 
     cvxopt.solvers.options['abstol'] = 1e-15
     cvxopt.solvers.options['reltol'] = 1e-15
@@ -105,7 +113,7 @@ def planSpeedConvexOpt(vel, waypoints_dist, a_max, s_max, v_max_arr, v_min_arr, 
 
     return vel
 
-def plotResult(vel):
+def plot_result(vel):
 
     # -- calc acc, jerk, latacc, --
     l = len(vel)
@@ -195,7 +203,8 @@ if __name__ == '__main__':
     wp = pd.read_csv('waypoint.csv')
     vel_orig = wp['velocity'].values
     yaw = wp['yaw'].values
-    curvature = calcWaypointsCurvature(wp['x'].values, wp['y'].values)
+    yaw = convert_eluer_to_monotonic(yaw)
+    curvature = calc_waypoints_curvature(wp['x'].values, wp['y'].values)
 
     v = vel_orig
     l = len(v)
@@ -227,7 +236,7 @@ if __name__ == '__main__':
     max_iter_num = 20
 
     # -- solve optimization problem --
-    vel_res = planSpeedConvexOpt(vel_orig, waypoints_dist, a_max, s_max, v_max_arr, v_min_arr, tire_angvel_max, max_iter_num)
+    vel_res = plan_speed_convex_opt(vel_orig, waypoints_dist, a_max, s_max, v_max_arr, v_min_arr, tire_angvel_max, max_iter_num)
 
     # -- save as waypoints --
     wp_out = copy.copy(wp)
@@ -235,4 +244,4 @@ if __name__ == '__main__':
     wp_out.to_csv('./velocity_replanned_waypoints.csv')
 
     # -- plot graphs --
-    plotResult(vel_res)
+    plot_result(vel_res)
