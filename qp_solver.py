@@ -3,6 +3,7 @@ import math
 import cvxopt
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt
+import copy
 
 from cvxopt import matrix
 import pandas as pd
@@ -180,7 +181,7 @@ if __name__ == '__main__':
     # -- constraints --
     v_max = 10.0           # velocity limit [m/s]
     a_max = 2.0            # acceleration limit [m/s2]
-    s_max = 5.0            # jerk limit [m/s3]
+    s_max = 3.0            # jerk limit [m/s3]
     latacc_max = 2.0       # lateral acceleration limit [m/s2]
     tire_angvel_max = 0.5  # tire angular velocity max [rad/s] (calculated with kinematics model)
     tire_angvel_thr = 0.1  # Threshold to judge that the tire has the angular velocity [rad/s]
@@ -195,7 +196,6 @@ if __name__ == '__main__':
     vel_orig = wp['velocity'].values
     yaw = wp['yaw'].values
     curvature = calcWaypointsCurvature(wp['x'].values, wp['y'].values)
-    print(wp)
 
     v = vel_orig
     l = len(v)
@@ -229,7 +229,10 @@ if __name__ == '__main__':
     # -- solve optimization problem --
     vel_res = planSpeedConvexOpt(vel_orig, waypoints_dist, a_max, s_max, v_max_arr, v_min_arr, tire_angvel_max, max_iter_num)
 
-    # # -- plot graphs --
-    plotResult(vel_res)
+    # -- save as waypoints --
+    wp_out = copy.copy(wp)
+    wp_out['velocity'] = vel_res
+    wp_out.to_csv('./velocity_replanned_waypoints.csv')
 
-        
+    # -- plot graphs --
+    plotResult(vel_res)
