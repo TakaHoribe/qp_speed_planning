@@ -33,6 +33,7 @@ def calc_waypoints_curvature(wp_x, wp_y):
     return curvature
 
 def convert_eluer_to_monotonic(yaw_arr):
+    l = len(yaw_arr)
     for i in range(1, len(yaw_arr)):
         if yaw_arr[i] - yaw_arr[i-1] > math.pi:
             yaw_arr[i:l] = yaw_arr[i:l] - 2.0 * math.pi
@@ -187,11 +188,11 @@ def plot_result(vel):
 if __name__ == '__main__':
 
     # -- constraints --
-    v_max = 10.0           # velocity limit [m/s]
+    v_max = 13.8889        # velocity limit [m/s]
     a_max = 2.0            # acceleration limit [m/s2]
     s_max = 3.0            # jerk limit [m/s3]
     latacc_max = 2.0       # lateral acceleration limit [m/s2]
-    tire_angvel_max = 0.5  # tire angular velocity max [rad/s] (calculated with kinematics model)
+    tire_angvel_max = 0.7  # tire angular velocity max [rad/s] (calculated with kinematics model)
     tire_angvel_thr = 0.1  # Threshold to judge that the tire has the angular velocity [rad/s]
     vel_min_for_tire = 2.0 # Minimum vehicle speed when moving a tire [m]
     
@@ -201,7 +202,7 @@ if __name__ == '__main__':
 
     # -- load waypoints --
     wp = pd.read_csv('waypoint.csv')
-    vel_orig = wp['velocity'].values
+    vel_orig = wp['velocity'].values / 3.6 #km/h to m/s
     yaw = wp['yaw'].values
     yaw = convert_eluer_to_monotonic(yaw)
     curvature = calc_waypoints_curvature(wp['x'].values, wp['y'].values)
@@ -233,14 +234,14 @@ if __name__ == '__main__':
             v_min_arr[i] = vel_min_for_tire
     
     # -- max iteration number for convex optimization --
-    max_iter_num = 20
+    max_iter_num = 11
 
     # -- solve optimization problem --
     vel_res = plan_speed_convex_opt(vel_orig, waypoints_dist, a_max, s_max, v_max_arr, v_min_arr, tire_angvel_max, max_iter_num)
 
     # -- save as waypoints --
     wp_out = copy.copy(wp)
-    wp_out['velocity'] = vel_res
+    wp_out['velocity'] = vel_res * 3.6 # m/s to km/h
     wp_out.to_csv('./velocity_replanned_waypoints.csv')
 
     # -- plot graphs --
